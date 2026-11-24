@@ -11,7 +11,6 @@ export default defineConfig({
     vueDevTools(),
   ],
   server: {
-    // Client calls /api/*; the Express mock serves the contract paths without the prefix.
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

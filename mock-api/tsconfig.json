@@ -1,0 +1,11 @@
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
+  }
+}
