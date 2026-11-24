@@ -6,10 +6,12 @@ import { useConfirm } from 'primevue/useconfirm'
 import BatchHeader from '../components/BatchHeader.vue'
 import LinesTable from '../components/LinesTable.vue'
 import MatchDialog from '../components/MatchDialog.vue'
-import { ApiError, matchLine, setLineState } from '../api/client'
+import ConflictDialog from '../components/ConflictDialog.vue'
+import type { ApiError } from '../api/client'
 import type { Line, StateRequest } from '../api/types'
 import { useBatch } from '../composables/useBatch'
 import { useLines } from '../composables/useLines'
+import type { LineChange } from '../batch/changes'
 
 const props = defineProps<{ id: string }>()
 
@@ -19,27 +21,48 @@ const {
   error: batchError,
   reload: reloadBatch,
 } = useBatch(() => props.id)
-const { data: lines, loading: linesLoading, error: linesError, replace } = useLines(() => props.id)
+
+const {
+  data: lines,
+  loading: linesLoading,
+  error: linesError,
+  pending,
+  rowErrors,
+  conflict,
+  reload: reloadLines,
+  apply,
+  keepMine,
+  takeTheirs,
+} = useLines(() => props.id)
 
 const confirm = useConfirm()
 const announcement = ref('')
 const matching = ref<Line | null>(null)
 
-async function save(line: Line, write: () => Promise<Line>) {
-  announcement.value = ''
-  try {
-    replace(await write())
+function report(line: Line, error: ApiError | null) {
+  if (!error) {
     reloadBatch()
-  } catch (e) {
-    if (!(e instanceof ApiError)) throw e
-    const details = Object.values(e.errors ?? {}).flat()
-    announcement.value = `${line.id}: ${details[0] ?? e.message}`
+    return
   }
+  if (error.code === 'stale_version') {
+    announcement.value = `${line.id} was changed by someone else. Choose which version to keep.`
+  } else if (error.code === 'batch_posted') {
+    reloadBatch()
+    reloadLines()
+    announcement.value = 'This batch has been posted. The screen is now read-only.'
+  } else {
+    announcement.value = `${line.id}: ${rowErrors.get(line.id) ?? error.message}`
+  }
+}
+
+async function run(line: Line, change: LineChange) {
+  announcement.value = ''
+  report(line, await apply(line, change))
 }
 
 function onSetState(line: Line, state: StateRequest['state'], reason?: string) {
   if (state === 'Unmatched') return confirmUnmatch(line)
-  save(line, () => setLineState(line.id, { version: line.version, state, reason }))
+  run(line, { type: 'state', state, reason })
 }
 
 function confirmUnmatch(line: Line) {
@@ -52,8 +75,7 @@ function confirmUnmatch(line: Line) {
     defaultFocus: 'reject',
     rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true, size: 'small' },
     acceptProps: { label: 'Unmatch', size: 'small' },
-    accept: () =>
-      save(line, () => setLineState(line.id, { version: line.version, state: 'Unmatched' })),
+    accept: () => run(line, { type: 'state', state: 'Unmatched' }),
   })
 }
 
@@ -62,9 +84,21 @@ function onUnmatch(line: Line) {
   confirmUnmatch(line)
 }
 
-function onMatch(line: Line, chargeIds: string[]) {
+function onMatch(line: Line, shares: { chargeId: string; amountCents: number }[]) {
   matching.value = null
-  save(line, () => matchLine(line.id, { version: line.version, chargeIds }))
+  run(line, { type: 'match', shares })
+}
+
+async function onKeepMine() {
+  const line = conflict.value?.theirs
+  const error = await keepMine()
+  if (line) report(line, error)
+}
+
+function onTakeTheirs() {
+  const line = conflict.value?.theirs
+  takeTheirs()
+  if (line) announcement.value = `${line.id} now shows the server's version.`
 }
 </script>
 
@@ -72,7 +106,9 @@ function onMatch(line: Line, chargeIds: string[]) {
   <main class="flex flex-col gap-4 px-6 py-6">
     <h1 class="text-2xl font-semibold">Batch {{ id }}</h1>
 
-    <p v-if="(batchLoading && !batch) || linesLoading" class="text-slate-500">Loading…</p>
+    <p v-if="(batchLoading && !batch) || (linesLoading && !lines.length)" class="text-slate-500">
+      Loading…
+    </p>
 
     <Message v-else-if="(batchError && !batch) || linesError" severity="error">
       {{ (batchError ?? linesError)?.message }}
@@ -91,6 +127,8 @@ function onMatch(line: Line, chargeIds: string[]) {
       <LinesTable
         :lines="lines"
         :read-only="batch.status === 'Posted'"
+        :pending="pending"
+        :row-errors="rowErrors"
         @set-state="onSetState"
         @match="(line) => (matching = line)"
       />
@@ -102,6 +140,8 @@ function onMatch(line: Line, chargeIds: string[]) {
       @confirm="onMatch"
       @unmatch="onUnmatch"
     />
+
+    <ConflictDialog :conflict="conflict" @keep-mine="onKeepMine" @take-theirs="onTakeTheirs" />
 
     <ConfirmDialog class="w-full max-w-md" />
 

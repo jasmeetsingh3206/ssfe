@@ -15,7 +15,7 @@ const props = defineProps<{ line: Line | null }>()
 const emit = defineEmits<{
   close: []
   unmatch: [line: Line]
-  confirm: [line: Line, chargeIds: string[]]
+  confirm: [line: Line, shares: { chargeId: string; amountCents: number }[]]
 }>()
 
 const { data: charges, loading, error, search } = useCharges()
@@ -62,13 +62,7 @@ const preview = computed(() => {
 })
 
 function confirm() {
-  if (props.line && selected.value.length > 0) {
-    emit(
-      'confirm',
-      props.line,
-      selected.value.map((c) => c.id),
-    )
-  }
+  if (props.line && preview.value.length > 0) emit('confirm', props.line, preview.value)
 }
 
 function restoreFocus() {
@@ -198,7 +192,7 @@ function restoreFocus() {
           <Button
             size="small"
             :label="selected.length > 1 ? `Split across ${selected.length} charges` : 'Match'"
-            :disabled="selected.length === 0"
+            :disabled="preview.length === 0"
             @click="confirm"
           />
         </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCents, parseCents } from '../cents'
+import { formatCents, parseCents, toAmount } from '../cents'
 
 describe('parseCents', () => {
   it.each([
@@ -51,5 +51,18 @@ describe('formatCents', () => {
     [100000000, '$1,000,000.00'],
   ])('%i → %s', (c, s) => {
     expect(formatCents(c)).toBe(s)
+  })
+})
+
+describe('toAmount', () => {
+  it.each([
+    [12050, '120.50'],
+    [-20000, '-200.00'],
+    [1, '0.01'],
+    [0, '0.00'],
+    [123456789, '1234567.89'],
+  ])('%i → %s and back', (c, s) => {
+    expect(toAmount(c)).toBe(s)
+    expect(parseCents(s)).toBe(c)
   })
 })

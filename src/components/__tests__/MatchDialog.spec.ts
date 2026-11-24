@@ -88,7 +88,13 @@ describe('MatchDialog', () => {
       .findAll('button')
       .find((b) => b.text() === 'Split across 2 charges')
       ?.trigger('click')
-    expect(wrapper.emitted('confirm')?.[0]).toEqual([l6, ['CH-41', 'CH-42']])
+    expect(wrapper.emitted('confirm')?.[0]).toEqual([
+      l6,
+      [
+        { chargeId: 'CH-41', amountCents: 10000 },
+        { chargeId: 'CH-42', amountCents: 10000 },
+      ],
+    ])
   })
 
   it('one charge is a simple match for the full paid amount', async () => {

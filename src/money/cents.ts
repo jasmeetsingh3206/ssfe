@@ -27,3 +27,11 @@ export function formatCents(c: number): string {
   const sign = c < 0 ? '-' : ''
   return `${sign}$${dollars.toLocaleString('en-US')}.${String(cents).padStart(2, '0')}`
 }
+
+export function toAmount(c: number): string {
+  const abs = Math.abs(c)
+  const cents = abs % 100
+  const dollars = (abs - cents) / 100
+  const sign = c < 0 ? '-' : ''
+  return `${sign}${dollars}.${String(cents).padStart(2, '0')}`
+}

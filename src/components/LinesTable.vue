@@ -12,7 +12,12 @@ import Tooltip from 'primevue/tooltip'
 import type { Line, LineState, StateRequest } from '../api/types'
 import { formatCents, parseCents } from '../money/cents'
 
-const props = defineProps<{ lines: Line[]; readOnly: boolean }>()
+const props = defineProps<{
+  lines: Line[]
+  readOnly: boolean
+  pending: Set<string>
+  rowErrors: Map<string, string>
+}>()
 
 const emit = defineEmits<{
   match: [line: Line]
@@ -243,27 +248,37 @@ function confirmExclude() {
       </Column>
       <Column header="Actions">
         <template #body="{ data }">
-          <SplitButton
-            label="Match"
-            outlined
-            severity="secondary"
-            size="small"
-            :model="moreActions(data)"
-            :disabled="readOnly"
-            :button-props="{ disabled: readOnly || !isValid(data) }"
-            :menu-button-props="{ 'aria-label': `More actions for ${data.id}` }"
-            @click="emit('match', data)"
-          >
-            <template #icon>
-              <span class="mr-2 h-2 w-2 rounded-full bg-green-600"></span>
-            </template>
-            <template #menuitemicon="{ item }">
-              <span
-                class="mr-2 h-2 w-2 rounded-full"
-                :class="stateDot[item.state as LineState]"
-              ></span>
-            </template>
-          </SplitButton>
+          <div class="flex items-center gap-2">
+            <SplitButton
+              label="Match"
+              outlined
+              severity="secondary"
+              size="small"
+              :model="moreActions(data)"
+              :disabled="readOnly || pending.has(data.id)"
+              :button-props="{ disabled: readOnly || pending.has(data.id) || !isValid(data) }"
+              :menu-button-props="{ 'aria-label': `More actions for ${data.id}` }"
+              @click="emit('match', data)"
+            >
+              <template #icon>
+                <span class="mr-2 h-2 w-2 rounded-full bg-green-600"></span>
+              </template>
+              <template #menuitemicon="{ item }">
+                <span
+                  class="mr-2 h-2 w-2 rounded-full"
+                  :class="stateDot[item.state as LineState]"
+                ></span>
+              </template>
+            </SplitButton>
+            <span v-if="pending.has(data.id)" class="text-xs text-slate-500">Saving…</span>
+            <span
+              v-else-if="rowErrors.has(data.id)"
+              class="max-w-64 truncate text-xs text-red-700"
+              :title="rowErrors.get(data.id)"
+            >
+              {{ rowErrors.get(data.id) }}
+            </span>
+          </div>
         </template>
       </Column>
     </DataTable>

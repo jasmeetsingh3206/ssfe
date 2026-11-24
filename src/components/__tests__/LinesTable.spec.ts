@@ -28,9 +28,13 @@ const lines = [
   line('L-9', '25.00', 'Unmatched', { billed: '40.00', adjustments: '10.00' }),
 ]
 
-function mountTable(readOnly = false) {
+function mountTable(
+  readOnly = false,
+  pending = new Set<string>(),
+  rowErrors = new Map<string, string>(),
+) {
   return mount(LinesTable, {
-    props: { lines, readOnly },
+    props: { lines, readOnly, pending, rowErrors },
     global: { plugins: [PrimeVue] },
     attachTo: document.body,
   })
@@ -135,5 +139,22 @@ describe('LinesTable', () => {
     const unmatch = menuOf(wrapper, 'L-1').find((item) => item.label === 'Unmatch')
     unmatch?.command?.({ originalEvent: new Event('click'), item: unmatch })
     expect(wrapper.emitted('setState')?.[0]).toEqual([lines[0], 'Unmatched'])
+  })
+
+  it('a saving row shows Saving… and its actions are disabled', () => {
+    const wrapper = mountTable(false, new Set(['L-1']))
+    expect(rowOf(wrapper, 'L-1')?.text()).toContain('Saving…')
+    expect(matchButton(wrapper, 'L-1')?.attributes('disabled')).toBeDefined()
+    expect(matchButton(wrapper, 'L-8')?.attributes('disabled')).toBeUndefined()
+  })
+
+  it('shows a field error next to its row', () => {
+    const wrapper = mountTable(
+      false,
+      new Set(),
+      new Map([['L-9', 'Give a reason of 1 to 200 characters']]),
+    )
+    expect(rowOf(wrapper, 'L-9')?.text()).toContain('Give a reason of 1 to 200 characters')
+    expect(rowOf(wrapper, 'L-1')?.text()).not.toContain('Give a reason')
   })
 })
