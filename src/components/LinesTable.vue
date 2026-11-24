@@ -166,10 +166,10 @@ function confirmExclude() {
       :sort-order="sortOrder"
       scrollable
       scroll-height="600px"
-      :virtual-scroller-options="lines.length > 100 ? { itemSize: 44 } : undefined"
+      :virtual-scroller-options="lines.length > 100 ? { itemSize: 40 } : undefined"
       size="small"
       striped-rows
-      class="overflow-hidden rounded-md border border-slate-200 whitespace-nowrap shadow-sm [&_th]:bg-slate-100 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-slate-600 [&_th]:uppercase"
+      class="overflow-hidden rounded-md border border-slate-200 whitespace-nowrap shadow-sm [&_th]:bg-slate-50 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-slate-600 [&_th]:uppercase"
       @sort="onSort"
     >
       <template #empty>
@@ -246,7 +246,7 @@ function confirmExclude() {
           <SplitButton
             label="Match"
             outlined
-            severity="success"
+            severity="secondary"
             size="small"
             :model="moreActions(data)"
             :disabled="readOnly"
@@ -254,6 +254,9 @@ function confirmExclude() {
             :menu-button-props="{ 'aria-label': `More actions for ${data.id}` }"
             @click="emit('match', data)"
           >
+            <template #icon>
+              <span class="mr-2 h-2 w-2 rounded-full bg-green-600"></span>
+            </template>
             <template #menuitemicon="{ item }">
               <span
                 class="mr-2 h-2 w-2 rounded-full"
@@ -274,10 +277,16 @@ function confirmExclude() {
     >
       <form class="flex flex-col gap-3" @submit.prevent="confirmExclude">
         <label for="exclude-reason">Reason (1 to 200 characters)</label>
-        <InputText id="exclude-reason" v-model="reason" maxlength="200" autofocus />
+        <InputText id="exclude-reason" v-model="reason" maxlength="200" size="small" autofocus />
         <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" outlined @click="excluding = null" />
-          <Button type="submit" label="Exclude" :disabled="!reasonOk" />
+          <Button
+            label="Cancel"
+            severity="secondary"
+            outlined
+            size="small"
+            @click="excluding = null"
+          />
+          <Button type="submit" label="Exclude" size="small" :disabled="!reasonOk" />
         </div>
       </form>
     </Dialog>

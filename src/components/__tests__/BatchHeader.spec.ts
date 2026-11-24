@@ -3,13 +3,13 @@ import { mount } from '@vue/test-utils'
 import BatchHeader from '../BatchHeader.vue'
 import type { BatchSummary, Line, LineState } from '../../api/types'
 
-const batch = (status: 'Open' | 'Posted' = 'Open'): BatchSummary => ({
+const batch = (status: 'Open' | 'Posted' = 'Open', canPost = false): BatchSummary => ({
   id: 'B-104',
   labId: 'LAB-A',
   expectedAmount: '505.00',
   status,
   totals: { Matched: '230.00', Unmatched: '275.00', Suspense: '0.00', Excluded: '0.00' },
-  canPost: false,
+  canPost,
 })
 
 const line = (id: string, paid: string, state: LineState): Line => ({
@@ -64,5 +64,24 @@ describe('BatchHeader', () => {
     const text = mount(BatchHeader, { props: { batch: batch('Posted'), lines: [] } }).text()
     expect(text).toContain('Not ready')
     expect(text).toContain('Batch is already posted')
+  })
+
+  it('agrees with the server: no warning when both say not ready', () => {
+    const text = mount(BatchHeader, { props: { batch: batch(), lines: afterImport } }).text()
+    expect(text).not.toContain('The server says')
+  })
+
+  it('warns when the server canPost disagrees', () => {
+    const text = mount(BatchHeader, {
+      props: { batch: batch('Open', true), lines: afterImport },
+    }).text()
+    expect(text).toContain('The server says this batch is ready')
+  })
+
+  it('does not warn while the server summary is reloading', () => {
+    const text = mount(BatchHeader, {
+      props: { batch: batch('Open', true), lines: afterImport, checking: true },
+    }).text()
+    expect(text).not.toContain('The server says')
   })
 })

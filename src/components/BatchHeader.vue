@@ -4,7 +4,7 @@ import type { BatchSummary, Line, LineState } from '../api/types'
 import { readiness } from '../batch/readiness'
 import { formatCents, parseCents } from '../money/cents'
 
-const props = defineProps<{ batch: BatchSummary; lines: Line[] }>()
+const props = defineProps<{ batch: BatchSummary; lines: Line[]; checking?: boolean }>()
 
 const states: LineState[] = ['Matched', 'Suspense', 'Excluded', 'Unmatched']
 
@@ -20,6 +20,10 @@ const difference = computed(() => {
 })
 
 const status = computed(() => readiness(props.batch, props.lines))
+
+const serverDisagrees = computed(
+  () => !props.checking && props.batch.canPost !== status.value.ready,
+)
 </script>
 
 <template>
@@ -38,6 +42,10 @@ const status = computed(() => readiness(props.batch, props.lines))
         {{ status.ready ? 'Ready to post' : 'Not ready' }}
       </span>
       <span class="text-slate-600">{{ status.reasons.join(' · ') }}</span>
+      <span v-if="serverDisagrees" class="text-amber-700" role="status">
+        The server says this batch is {{ batch.canPost ? 'ready' : 'not ready' }}. Reload the page
+        to check.
+      </span>
     </div>
 
     <dl class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">

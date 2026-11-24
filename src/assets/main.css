@@ -1,2 +1,6 @@
 @layer theme, base, primevue, components, utilities;
 @import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}

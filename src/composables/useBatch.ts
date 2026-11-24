@@ -17,16 +17,20 @@ export function useBatch(id: MaybeRefOrGetter<string>) {
       if (request === latestRequest) data.value = batch
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
-      if (request === latestRequest) {
-        data.value = null
-        error.value = e
-      }
+      if (request === latestRequest) error.value = e
     } finally {
       if (request === latestRequest) loading.value = false
     }
   }
 
-  watch(() => toValue(id), reload, { immediate: true })
+  watch(
+    () => toValue(id),
+    () => {
+      data.value = null
+      reload()
+    },
+    { immediate: true },
+  )
 
   return { data, loading, error, reload }
 }
