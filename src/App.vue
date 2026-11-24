@@ -1,5 +1,5 @@
-<script setup lang="ts"></script>
-
 <template>
-  <RouterView />
+  <div class="min-h-screen bg-slate-50 text-sm text-slate-900">
+    <RouterView />
+  </div>
 </template>
