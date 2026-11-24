@@ -62,7 +62,7 @@ function save(line: Line): Line {
 }
 
 let delay: number | 'random' = 0
-let failNext: number | null = null
+let failNext = false
 
 const app = express()
 app.use(express.json())
@@ -71,20 +71,16 @@ app.post('/__mock', (req, res) => {
   const body: { delay?: unknown; failNext?: unknown } = req.body ?? {}
   const d = body.delay
   if (d === 'random' || (typeof d === 'number' && Number.isInteger(d) && d >= 0)) delay = d
-  if (body.failNext !== undefined) {
-    failNext =
-      body.failNext === true ? 500 : typeof body.failNext === 'number' ? body.failNext : null
-  }
+  if (typeof body.failNext === 'boolean') failNext = body.failNext
   res.json({ delay, failNext })
 })
 
 app.use(async (_req, res, next) => {
   const ms = delay === 'random' ? 100 + Math.floor(Math.random() * 1401) : delay
   if (ms) await new Promise((resolve) => setTimeout(resolve, ms))
-  if (failNext !== null) {
-    const status = failNext
-    failNext = null
-    return sendError(res, new ApiError(status, 'internal', 'Simulated failure'))
+  if (failNext) {
+    failNext = false
+    return sendError(res, new ApiError(500, 'internal', 'Simulated failure'))
   }
   next()
 })
@@ -172,7 +168,12 @@ app.use((_req, res) => sendError(res, new ApiError(404, 'not_found', 'No such en
 const onError: ErrorRequestHandler = (err: unknown, _req, res, _next) => {
   if (err instanceof ApiError) return sendError(res, err)
   if (err instanceof SyntaxError)
-    return sendError(res, new ApiError(400, 'validation', 'Body is not valid JSON'))
+    return sendError(
+      res,
+      new ApiError(400, 'validation', 'Body is not valid JSON', {
+        errors: { body: ['Body is not valid JSON'] },
+      }),
+    )
   console.error(err)
   sendError(res, new ApiError(500, 'internal', 'Unexpected server error'))
 }

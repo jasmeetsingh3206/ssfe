@@ -3,8 +3,9 @@ import { computed } from 'vue'
 import type { BatchSummary, Line, LineState } from '../api/types'
 import { readiness } from '../batch/readiness'
 import { formatCents, parseCents } from '../money/cents'
+import { stateDot } from '../batch/stateColors'
 
-const props = defineProps<{ batch: BatchSummary; lines: Line[]; checking?: boolean }>()
+const props = defineProps<{ batch: BatchSummary; lines: Line[] }>()
 
 const states: LineState[] = ['Matched', 'Suspense', 'Excluded', 'Unmatched']
 
@@ -20,10 +21,6 @@ const difference = computed(() => {
 })
 
 const status = computed(() => readiness(props.batch, props.lines))
-
-const serverDisagrees = computed(
-  () => !props.checking && props.batch.canPost !== status.value.ready,
-)
 </script>
 
 <template>
@@ -42,10 +39,6 @@ const serverDisagrees = computed(
         {{ status.ready ? 'Ready to post' : 'Not ready' }}
       </span>
       <span class="text-slate-600">{{ status.reasons.join(' · ') }}</span>
-      <span v-if="serverDisagrees" class="text-amber-700" role="status">
-        The server says this batch is {{ batch.canPost ? 'ready' : 'not ready' }}. Reload the page
-        to check.
-      </span>
     </div>
 
     <dl class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -56,7 +49,12 @@ const serverDisagrees = computed(
         </dd>
       </div>
       <div v-for="state in states" :key="state" class="border-slate-200 px-4 py-3 lg:border-r">
-        <dt class="text-xs font-semibold tracking-wide text-slate-500 uppercase">{{ state }}</dt>
+        <dt
+          class="flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase"
+        >
+          <span class="h-2 w-2 rounded-full" :class="stateDot[state]"></span>
+          {{ state }}
+        </dt>
         <dd class="mt-1 text-lg tabular-nums">{{ formatCents(totals[state]) }}</dd>
       </div>
       <div class="px-4 py-3">

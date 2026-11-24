@@ -40,10 +40,7 @@ const announcement = ref('')
 const matching = ref<Line | null>(null)
 
 function report(line: Line, error: ApiError | null) {
-  if (!error) {
-    reloadBatch()
-    return
-  }
+  if (!error) return
   if (error.code === 'stale_version') {
     announcement.value = `${line.id} was changed by someone else. Choose which version to keep.`
   } else if (error.code === 'batch_posted') {
@@ -115,7 +112,7 @@ function onTakeTheirs() {
     </Message>
 
     <template v-else-if="batch">
-      <BatchHeader :batch="batch" :lines="lines" :checking="batchLoading" />
+      <BatchHeader :batch="batch" :lines="lines" />
 
       <p
         v-if="batch.status === 'Posted'"

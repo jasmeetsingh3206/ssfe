@@ -1,54 +1,62 @@
-# ss-remittance-review
+# Remittance Review
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + TypeScript + Vite + Vitest. UI uses Tailwind and PrimeVue 4. The API is an in-memory Express mock in `mock-api/`.
 
-## Recommended IDE Setup
+## Setup
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+Needs Node 24 (`.nvmrc`).
 
 ```sh
+nvm use
 npm install
+cd mock-api && npm install
 ```
 
-### Compile and Hot-Reload for Development
+## Run
+
+Two terminals:
 
 ```sh
-npm run dev
+cd mock-api && npm run dev   # mock API on :3001
+npm run dev                  # app on http://localhost:5173
 ```
 
-### Type-Check, Compile and Minify for Production
+The app opens `/batches/B-104`. Also try `/batches/B-090` (posted, read-only) and `/batches/B-500` (500 lines).
+The app calls `/api/...`, and Vite forwards it to the mock. Restart the mock to reset its data.
+
+## Tests
 
 ```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
+npm run test:unit -- --run
+npm run type-check
 npm run lint
 ```
+
+## Mock switches
+
+```sh
+curl -X POST localhost:3001/__mock -H 'content-type: application/json' -d '{"delay": 800}'
+curl -X POST localhost:3001/__mock -H 'content-type: application/json' -d '{"delay": "random"}'   # 100–1500 ms
+curl -X POST localhost:3001/__mock -H 'content-type: application/json' -d '{"failNext": true}'    # next request fails (500)
+curl -X POST localhost:3001/__mock -H 'content-type: application/json' -d '{"delay": 0, "failNext": false}'
+```
+
+To see a 409 conflict, open B-104 in two tabs, split L-6 in one, then choose Suspense on L-6 in the other.
+
+## Assumptions
+
+- `formatCents` uses a plain hyphen: `-$200.00`.
+- Auto-match uses `originalCode` instead of `code` when it is present.
+- An invalid line can only be excluded; it can't go back to Unmatched.
+- Readiness reasons: "Batch is already posted", "N lines unmatched", "Totals differ by $X".
+- The header works out readiness from the lines with the same rule as the server's `canPost`.
+- Match on a Matched line shows its allocation. To change it, unmatch first. Unmatch asks for confirmation.
+- The reason a line is invalid is shown in a tooltip.
+- Mock: no lab isolation (R7) or full error order (R9). `limit` is capped to 1–50. Simulated failures use error code `internal`. B-104 has extra remarks, one with HTML.
+- The mock is a separate project with its own copy of the split rule, because the real backend is .NET.
+- PrimeVue is pinned to 4.5.5 (MIT). Version 5 needs a paid license.
+
+## Not done
+
+- No page-level or browser tests.
+- Other users' changes only show after a reload or a 409.

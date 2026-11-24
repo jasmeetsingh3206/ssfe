@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext'
 import Tooltip from 'primevue/tooltip'
 import type { Line, LineState, StateRequest } from '../api/types'
 import { formatCents, parseCents } from '../money/cents'
+import { stateDot } from '../batch/stateColors'
 
 const props = defineProps<{
   lines: Line[]
@@ -76,13 +77,6 @@ const rows = computed(() => {
     return (byField || a.id.localeCompare(b.id)) * sortOrder.value
   })
 })
-
-const stateDot: Record<LineState, string> = {
-  Matched: 'bg-green-600',
-  Unmatched: 'bg-amber-500',
-  Suspense: 'bg-sky-600',
-  Excluded: 'bg-slate-400',
-}
 
 const vTooltip = Tooltip
 
